@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import express from "express";
 import cors from "cors";
@@ -32,10 +33,12 @@ app.use("/api/payments", paymentRoutes);
 
 if (env.nodeEnv === "production") {
   const clientDistPath = path.resolve(__dirname, "../../client/dist");
-  app.use(express.static(clientDistPath));
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(clientDistPath, "index.html"));
-  });
+  if (fs.existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    app.get(/^(?!\/api).*/, (_req, res) => {
+      res.sendFile(path.join(clientDistPath, "index.html"));
+    });
+  }
 }
 
 app.use(notFoundHandler);
