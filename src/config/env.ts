@@ -15,6 +15,7 @@ const must = (value: string | undefined, name: string, fallback: string): string
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4000),
+  mysqlUrl: process.env.RAILWAY_SERVICE_MYSQL_URL ?? process.env.MYSQL_URL,
   mysqlHost: must(process.env.MYSQL_HOST, "MYSQL_HOST", "localhost"),
   mysqlPort: Number(process.env.MYSQL_PORT ?? 3306),
   mysqlUser: must(process.env.MYSQL_USER, "MYSQL_USER", "root"),
