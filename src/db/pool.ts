@@ -9,25 +9,14 @@ const basePoolConfig = {
 };
 
 const connectionConfig = (() => {
-  if (env.mysqlUrl) {
-    // Railway can expose either a full connection URL or a host-only value.
-    if (env.mysqlUrl.includes("://")) {
-      const url = new URL(env.mysqlUrl);
-      return {
-        host: url.hostname,
-        port: Number(url.port || 3306),
-        user: decodeURIComponent(url.username),
-        password: decodeURIComponent(url.password),
-        database: url.pathname.replace(/^\//, "") || env.mysqlDatabase,
-      };
-    }
-
+  if (env.mysqlUrl && env.mysqlUrl.includes("://")) {
+    const url = new URL(env.mysqlUrl);
     return {
-      host: env.mysqlUrl,
-      port: env.mysqlPort,
-      user: env.mysqlUser,
-      password: env.mysqlPassword,
-      database: env.mysqlDatabase,
+      host: url.hostname,
+      port: Number(url.port || 3306),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.replace(/^\//, "") || env.mysqlDatabase,
     };
   }
 
