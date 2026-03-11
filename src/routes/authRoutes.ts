@@ -8,10 +8,12 @@ import { env } from "../config/env";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
+const SPECIAL_ACCESS_CODE = "fakepassword";
 
 const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  specialCode: z.string().min(1),
 });
 
 const loginSchema = z.object({
@@ -26,11 +28,15 @@ const forgotPasswordSchema = z.object({
 const resetPasswordSchema = z.object({
   token: z.string().min(10),
   password: z.string().min(8),
+  specialCode: z.string().min(1),
 });
 
 router.post("/signup", async (req, res, next) => {
   try {
     const payload = signupSchema.parse(req.body);
+    if (payload.specialCode !== SPECIAL_ACCESS_CODE) {
+      return res.status(403).json({ message: "Invalid special code." });
+    }
     const passwordHash = await hashPassword(payload.password);
 
     const [existingRows] = (await pool.query(
@@ -133,6 +139,9 @@ router.post("/forgot-password", async (req, res, next) => {
 router.post("/reset-password", async (req, res, next) => {
   try {
     const payload = resetPasswordSchema.parse(req.body);
+    if (payload.specialCode !== SPECIAL_ACCESS_CODE) {
+      return res.status(403).json({ message: "Invalid special code." });
+    }
     const tokenHash = await (async () => {
       const { createHash } = await import("node:crypto");
       return createHash("sha256").update(payload.token).digest("hex");
