@@ -1,0 +1,2 @@
+ALTER TABLE meal_events
+ADD COLUMN expires_at DATETIME NULL;
