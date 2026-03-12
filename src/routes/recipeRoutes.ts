@@ -137,7 +137,7 @@ router.get("/:id/ratings", requirePermissions(["recipes:read"]), async (req, res
         id: number;
         consumer_name: string;
         consumed_at: string;
-        rating: number;
+        rating: number | null;
         meal_title: string;
       }[],
       unknown,

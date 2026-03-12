@@ -18,6 +18,9 @@ const consumeSchema = z.object({
   mealEventId: z.number().int().positive(),
   consumerName: z.string().min(1).max(255),
   consumedAt: z.string().datetime(),
+});
+
+const updateConsumptionRatingSchema = z.object({
   rating: z.number().int().min(1).max(10),
 });
 
@@ -94,7 +97,7 @@ router.post("/consume", requirePermissions(["meals:consume"]), async (req, res, 
       INSERT INTO meal_consumptions (meal_event_id, consumer_name, consumed_at, created_by_user_id, rating)
       VALUES (?, ?, ?, ?, ?)
       `,
-      [payload.mealEventId, payload.consumerName, new Date(payload.consumedAt), req.authUser!.id, payload.rating],
+      [payload.mealEventId, payload.consumerName, new Date(payload.consumedAt), req.authUser!.id, null],
     );
     return res.status(201).json({ id: (result as { insertId: number }).insertId });
   } catch (error) {
@@ -116,7 +119,7 @@ router.get("/consumptions", requirePermissions(["meals:read"]), async (_req, res
         meal_event_id: number;
         consumer_name: string;
         consumed_at: string;
-        rating: number;
+        rating: number | null;
       }[],
       unknown,
     ];
@@ -134,5 +137,31 @@ router.get("/consumptions", requirePermissions(["meals:read"]), async (_req, res
     return next(error);
   }
 });
+
+router.patch(
+  "/consumptions/:id",
+  requirePermissions(["meals:consume"]),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id < 1) {
+        return res.status(400).json({ message: "Invalid consumption id." });
+      }
+      const payload = updateConsumptionRatingSchema.parse(req.body);
+
+      const [result] = (await pool.query(
+        "UPDATE meal_consumptions SET rating = ? WHERE id = ?",
+        [payload.rating, id],
+      )) as unknown as [{ affectedRows: number }, unknown];
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Consumption not found." });
+      }
+      return res.status(200).json({ id, rating: payload.rating });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
 
 export default router;
