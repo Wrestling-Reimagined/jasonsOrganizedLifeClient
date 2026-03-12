@@ -15,19 +15,27 @@ const paymentSchema = z.object({
 
 router.use(requireAuth);
 
+/** Convert ISO 8601 datetime to MySQL format (YYYY-MM-DD HH:MM:SS). MySQL rejects ISO format in strict mode. */
+function toMysqlDatetime(iso: string): string {
+  const d = new Date(iso);
+  return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
 router.post("/", requirePermissions(["payments:create"]), async (req, res, next) => {
   try {
     const payload = paymentSchema.parse(req.body);
+    const mysqlDatetime = toMysqlDatetime(payload.paidAt);
+    const mysqlDate = mysqlDatetime.slice(0, 10);
     const [result] = await pool.query(
       `
       INSERT INTO payments (created_by_user_id, amount, paid_on, paid_at, category, notes)
-      VALUES (?, ?, DATE(?), ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
       `,
       [
         req.authUser!.id,
         payload.amount,
-        payload.paidAt,
-        new Date(payload.paidAt),
+        mysqlDate,
+        mysqlDatetime,
         payload.category,
         payload.notes ?? null,
       ],
