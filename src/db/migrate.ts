@@ -28,7 +28,30 @@ const run = async (): Promise<void> => {
     }
 
     const sql = await fs.readFile(path.join(dir, file), "utf8");
-    await pool.query(sql);
+
+    if (file === "005_meal_consumption_rating_nullable.sql") {
+      const statements = sql
+        .split(/;\s*\n/)
+        .map((s) => s.replace(/--.*$/gm, "").trim())
+        .filter((s) => s.length > 0);
+      for (const statement of statements) {
+        try {
+          await pool.query(statement + ";");
+        } catch (err: unknown) {
+          const mysqlErr = err as { errno?: number; code?: string };
+          if (mysqlErr.errno === 3821 || mysqlErr.code === "ER_CHECK_CONSTRAINT_NOT_FOUND") {
+            // Constraint was never created (e.g. DB bootstrapped without 002's check)
+            // eslint-disable-next-line no-console
+            console.log("Skipping DROP CHECK (constraint not present)");
+            continue;
+          }
+          throw err;
+        }
+      }
+    } else {
+      await pool.query(sql);
+    }
+
     await pool.query("INSERT INTO _migrations (name) VALUES (?)", [file]);
     // eslint-disable-next-line no-console
     console.log(`Applied migration ${file}`);
